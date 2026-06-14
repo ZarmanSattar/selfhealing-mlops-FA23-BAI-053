@@ -1,0 +1,13 @@
+.git
+.gitignore
+Jenkinsfile
+Jenkinsfile.rollback
+README.md
+*.yml
+*.yaml
+k8s/
+tests/
+.pytest_cache/
+__pycache__/
+*.txt
+!requirements.txt
