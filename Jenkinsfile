@@ -24,8 +24,22 @@ pipeline {
                     docker network create ${NETWORK_NAME} || true
                     docker rm -f ${APP_CONTAINER} || true
                     docker run -d --name ${APP_CONTAINER} --network ${NETWORK_NAME} ${IMAGE_UNSTABLE}
+
+                    echo "Waiting for Flask to start..."
                     sleep 10
-                    echo "Container started"
+
+                    echo "Pre-warming model..."
+                    for i in $(seq 1 30); do
+                        RESULT=$(docker exec ${APP_CONTAINER} curl -sf -X POST http://localhost:5000/predict \
+                            -H "Content-Type: application/json" \
+                            -d "{\"text\":\"test\"}" 2>/dev/null || echo "")
+                        if [ -n "$RESULT" ]; then
+                            echo "Model warmed up: $RESULT"
+                            break
+                        fi
+                        echo "Warming up... attempt $i"
+                        sleep 5
+                    done
                 '''
             }
         }
@@ -64,11 +78,12 @@ pipeline {
         stage('Build and Push') {
             steps {
                 sh '''
+                    echo "${DOCKERHUB_CREDS_PSW}" | docker login -u "${DOCKERHUB_CREDS_USR}" --password-stdin
+
                     rm -rf /tmp/stable-build-${BUILD_NUMBER}
                     git clone -b stable-fallback https://github.com/ZarmanSattar/selfhealing-mlops-FA23-BAI-053.git /tmp/stable-build-${BUILD_NUMBER}
                     docker build -t ${IMAGE_STABLE} /tmp/stable-build-${BUILD_NUMBER}
 
-                    echo "${DOCKERHUB_CREDS_PSW}" | docker login -u "${DOCKERHUB_CREDS_USR}" --password-stdin
                     docker push ${IMAGE_UNSTABLE}
                     docker push ${IMAGE_STABLE}
                 '''
