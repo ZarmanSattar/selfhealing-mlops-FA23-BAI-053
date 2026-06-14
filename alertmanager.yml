@@ -3,6 +3,7 @@ global:
 
 route:
   receiver: jenkins-rollback-webhook
+  repeat_interval: 1m
 
 receivers:
   - name: jenkins-rollback-webhook
