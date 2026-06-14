@@ -24,16 +24,8 @@ pipeline {
                     docker network create ${NETWORK_NAME} || true
                     docker rm -f ${APP_CONTAINER} || true
                     docker run -d --name ${APP_CONTAINER} --network ${NETWORK_NAME} ${IMAGE_UNSTABLE}
-
-                    for i in $(seq 1 60); do
-                        STATUS=$(docker exec ${APP_CONTAINER} curl -sf -o /dev/null -w "%{http_code}" http://localhost:5000/health 2>/dev/null || echo "000")
-                        if [ "$STATUS" = "200" ]; then
-                            echo "App is healthy"
-                            break
-                        fi
-                        echo "Waiting... attempt $i"
-                        sleep 3
-                    done
+                    sleep 10
+                    echo "Container started"
                 '''
             }
         }
@@ -72,8 +64,6 @@ pipeline {
         stage('Build and Push') {
             steps {
                 sh '''
-                    docker build -t ${IMAGE_UNSTABLE} .
-
                     rm -rf /tmp/stable-build-${BUILD_NUMBER}
                     git clone -b stable-fallback https://github.com/ZarmanSattar/selfhealing-mlops-FA23-BAI-053.git /tmp/stable-build-${BUILD_NUMBER}
                     docker build -t ${IMAGE_STABLE} /tmp/stable-build-${BUILD_NUMBER}
