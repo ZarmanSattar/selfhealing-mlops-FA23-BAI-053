@@ -25,13 +25,14 @@ pipeline {
                     docker rm -f ${APP_CONTAINER} || true
                     docker run -d --name ${APP_CONTAINER} --network ${NETWORK_NAME} ${IMAGE_UNSTABLE}
 
-                    for i in $(seq 1 30); do
-                        if docker exec ${APP_CONTAINER} curl -sf http://localhost:5000/health > /dev/null; then
+                    for i in $(seq 1 60); do
+                        STATUS=$(docker exec ${APP_CONTAINER} curl -sf -o /dev/null -w "%{http_code}" http://localhost:5000/health 2>/dev/null || echo "000")
+                        if [ "$STATUS" = "200" ]; then
                             echo "App is healthy"
                             break
                         fi
-                        echo "Waiting for app to be healthy..."
-                        sleep 5
+                        echo "Waiting... attempt $i"
+                        sleep 3
                     done
                 '''
             }
@@ -55,7 +56,7 @@ pipeline {
                 sh '''
                     docker rm -f ${CHROME_CONTAINER} || true
                     docker run -d --name ${CHROME_CONTAINER} --network ${NETWORK_NAME} selenium/standalone-chrome:latest
-                    sleep 10
+                    sleep 8
 
                     docker run --rm \
                         --network ${NETWORK_NAME} \
